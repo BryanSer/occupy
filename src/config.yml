@@ -1,0 +1,20 @@
+#国家设定
+Countrys:
+    A:
+        #国家的名字
+        Name: 'A国'
+        #国家对应的权限
+        Permission: 'country.a'
+        #国家显示的颜色 就是&后面的那个字符
+        Color: '6'
+        #羊毛的显示颜色 填写羊毛的损伤值就行了
+        DyeColor: 1
+    B:
+        #国家的名字
+        Name: 'B国'
+        #国家对应的权限
+        Permission: 'country.b'
+        #国家显示的颜色 就是&后面的那个字符
+        Color: 'c'
+        #羊毛的显示颜色 填写羊毛的损伤值就行了
+        DyeColor: 2
