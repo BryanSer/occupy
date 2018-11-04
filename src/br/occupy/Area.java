@@ -167,7 +167,12 @@ public class Area implements BrConfigurationSerializable {
         Country c = getOccupyingCountry();
 
         if (c == null) {
-            this.OccupyTime -= 5;
+            if (!this.Occupied.equals(Area.NEUTRAL)) {
+                this.OccupyTime += 5;
+            } else {
+                this.OccupyTime -= 5;
+            }
+            this.OccupyTime = this.OccupyTime > MAX_OCCUPY_TIME ? MAX_OCCUPY_TIME : this.OccupyTime < 0 ? 0 : this.OccupyTime;
             if (this.OccupyTime <= 0) {
                 this.OccupyTime = 0;
                 this.setOccupied(NEUTRAL);
@@ -195,7 +200,7 @@ public class Area implements BrConfigurationSerializable {
     public void run() {
         Country c = calcTime();
         if (c == null) {
-            return;
+            c = Data.Countrys.get(Occupied);
         }
         byte basedata = Occupied.equals(NEUTRAL) ? 0 : Data.Countrys.get(Occupied).getDyeColor();
         byte tar = c.getDyeColor();
