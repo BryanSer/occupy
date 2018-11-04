@@ -17,7 +17,6 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
-import org.bukkit.block.BlockState;
 import org.bukkit.entity.Player;
 
 /**
@@ -26,7 +25,7 @@ import org.bukkit.entity.Player;
  * @version 1.0
  * @since 2018-11-1
  */
-public class Area implements BrConfigurationSerializable, Runnable {
+public class Area implements BrConfigurationSerializable {
 
     public static final String NEUTRAL = "+-Neutral-+";
     public static final int MAX_OCCUPY_TIME = 60;
@@ -48,7 +47,6 @@ public class Area implements BrConfigurationSerializable, Runnable {
     @Config
     private int OccupyTime = 0;
     private Queue<String> Occupying = new ArrayDeque<>();
-    private Country LastCountry = null;
 
     private Location[][] Blocks;
 
@@ -56,11 +54,11 @@ public class Area implements BrConfigurationSerializable, Runnable {
         BrConfigurationSerializable.deserialize(args, this);
     }
 
-    public Area(Location Top, Location Bottom, String Name, String DisplayName,Location displayholo) {
+    public Area(Location Top, Location Bottom, String Name, String DisplayName, Location displayholo) {
         this.Name = Name;
         this.DisplayName = DisplayName;
         this.setLocation(Top, Bottom);
-        this.DisplayHolo = displayholo;
+        this.DisplayHolo = new Location(displayholo.getWorld(), displayholo.getBlockX(), displayholo.getBlockY(), displayholo.getBlockZ());
     }
 
     public final void setLocation(Location l1, Location l2) {
@@ -78,6 +76,9 @@ public class Area implements BrConfigurationSerializable, Runnable {
     }
 
     public boolean inArea(Player p) {
+        if (p.getWorld() != this.Top.getWorld()) {
+            return false;
+        }
         Location loc = p.getLocation();
         int[] arr = {loc.getBlockX(), loc.getBlockY(), loc.getBlockZ()};
         return loc.getWorld() == this.Top.getWorld()
@@ -95,11 +96,11 @@ public class Area implements BrConfigurationSerializable, Runnable {
             OccupyTime = 0;
         }
         Blocks = new Location[lengthX()][lengthZ()];
+        int y = this.Bottom.getBlockY();
         for (int offx = 0; offx < lengthX(); offx++) {
             for (int offz = 0; offz < lengthZ(); offz++) {
                 int x = offx + this.Bottom.getBlockX();
                 int z = offz + this.Bottom.getBlockZ();
-                int y = getMaxY(this.Bottom.getWorld(), x, z);
                 Location glass = new Location(this.Bottom.getWorld(), x, y, z);
                 glass.getBlock().setType(Material.GLASS);
                 Blocks[offx][offz] = new Location(this.Bottom.getWorld(), x, y - 1, z);
@@ -166,12 +167,13 @@ public class Area implements BrConfigurationSerializable, Runnable {
         Country c = getOccupyingCountry();
 
         if (c == null) {
+            this.OccupyTime -= 5;
+            if (this.OccupyTime <= 0) {
+                this.OccupyTime = 0;
+                this.setOccupied(NEUTRAL);
+            }
             return null;
         }
-        if (LastCountry != c) {
-            this.OccupyTime = 0;
-        }
-        LastCountry = c;
         if (this.Occupied.equals(NEUTRAL)) {
             this.OccupyTime++;
             if (this.OccupyTime >= 60) {
@@ -183,7 +185,8 @@ public class Area implements BrConfigurationSerializable, Runnable {
             this.OccupyTime--;
         }
         this.OccupyTime = this.OccupyTime > MAX_OCCUPY_TIME ? MAX_OCCUPY_TIME : this.OccupyTime < 0 ? 0 : this.OccupyTime;
-        if (this.OccupyTime == 0) {
+        if (this.OccupyTime <= 0) {
+            this.OccupyTime = 0;
             this.setOccupied(NEUTRAL);
         }
         return c;
@@ -195,8 +198,12 @@ public class Area implements BrConfigurationSerializable, Runnable {
             return;
         }
         byte basedata = Occupied.equals(NEUTRAL) ? 0 : Data.Countrys.get(Occupied).getDyeColor();
-        Random random = new Random(SEED);
         byte tar = c.getDyeColor();
+        if (!this.Occupied.equals(c.getName())) {
+            basedata = 0;
+            tar = Data.Countrys.get(this.Occupied).getDyeColor();
+        }
+        Random random = new Random(SEED);
         double rate = this.OccupyTime / (double) MAX_OCCUPY_TIME;
         for (Location[] t : Blocks) {
             for (Location loc : t) {
@@ -206,16 +213,6 @@ public class Area implements BrConfigurationSerializable, Runnable {
                 b.setData(r < rate ? tar : basedata, false);
             }
         }
-    }
-
-    public static int getMaxY(World w, int x, int z) {
-        int y = 255;
-        Block b = w.getBlockAt(x, y, z);
-        while (b.getType() == Material.AIR && y > 0) {
-            y--;
-            b = w.getBlockAt(x, y, z);
-        }
-        return y;
     }
 
     public int lengthX() {
@@ -267,7 +264,13 @@ public class Area implements BrConfigurationSerializable, Runnable {
     }
 
     public Location getDisplayHolo() {
-        return DisplayHolo;
+        return DisplayHolo.clone();
+    }
+
+    public void add(Player p) {
+        if (!this.Occupying.contains(p)) {
+            this.Occupying.add(p.getName());
+        }
     }
 
 }
