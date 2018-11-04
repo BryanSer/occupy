@@ -199,7 +199,7 @@ public class Area implements BrConfigurationSerializable {
         }
         byte basedata = Occupied.equals(NEUTRAL) ? 0 : Data.Countrys.get(Occupied).getDyeColor();
         byte tar = c.getDyeColor();
-        if (!this.Occupied.equals(c.getName())) {
+        if (!this.Occupied.equals(c.getName()) && !this.Occupied.equals(Area.NEUTRAL)) {
             basedata = 0;
             tar = Data.Countrys.get(this.Occupied).getDyeColor();
         }
