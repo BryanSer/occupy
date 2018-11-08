@@ -8,7 +8,11 @@ package br.occupy;
 
 import Br.API.Utils;
 import com.gmail.filoghost.holographicdisplays.api.Hologram;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import org.bukkit.Bukkit;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
@@ -38,14 +42,61 @@ public class Main extends JavaPlugin {
 
         Bukkit.getScheduler().runTaskTimer(this, Data::refreshHolo, 20, 20);
         Data.loadArea();
+
+        Bukkit.getScheduler().runTaskTimer(this, () -> {
+            Country[] cos = Data.Countrys.values().toArray(new Country[Data.Countrys.size()]);
+            Arrays.sort(cos, (a, b)
+                    -> Data.Areas
+                            .values()
+                            .stream()
+                            .filter(ar -> ar.getOccupied().equals(b.getName()))
+                            .mapToInt(i -> 1)
+                            .sum()
+                    - Data.Areas
+                            .values()
+                            .stream()
+                            .filter(ar -> ar.getOccupied().equals(a.getName()))
+                            .mapToInt(i -> 1)
+                            .sum()
+            );
+            Bukkit.broadcastMessage(Data.Message.get("AwardBC"));
+            Bukkit.broadcastMessage(Data.Message.get("RankHead"));
+            for (int i = 0; i < cos.length; i++) {
+                Country co = cos[i];
+                int oc = Data.Areas
+                        .values()
+                        .stream()
+                        .filter(ar -> ar.getOccupied().equals(co.getName()))
+                        .mapToInt(ii -> 1)
+                        .sum();
+                Bukkit.broadcastMessage(Data.Message.get("RankFormat")
+                        .replaceAll("%rank%", String.valueOf(i + 1))
+                        .replaceAll("%country%", co.getDisplayName())
+                        .replaceAll("%count%", String.valueOf(oc))
+                );
+                if (oc == 0) {
+                    continue;
+                }
+                List<String> award = Data.Awards.get(i + 1);
+                if (award != null) {
+                    for (Player p : Utils.getOnlinePlayers()) {
+                        Country c = Data.getCountry(p);
+                        if(c == co){
+                            for (String cmd : award) {
+                                cmd = cmd.replaceAll("%player%", p.getName());
+                                Bukkit.dispatchCommand(Bukkit.getConsoleSender(), cmd);
+                            }
+                        }
+                    }
+                }
+            }
+        }, 10 * 60 * 20, 10 * 60 * 20);
     }
 
     @Override
     public void onDisable() {
         Data.saveArea();
     }
-    
-    
 
     public boolean onCommand(CommandSender sender, Command command, String label, String[] args) {
         if (!sender.isOp()) {
@@ -70,7 +121,7 @@ public class Main extends JavaPlugin {
                 sender.sendMessage("§c移除失败 找不到这个区域");
             } else {
                 Hologram h = Data.Holograms.remove(cz.getDisplayHolo().toString());
-                if(h != null){
+                if (h != null) {
                     h.delete();
                 }
                 sender.sendMessage("§b移除成功");

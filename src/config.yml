@@ -18,3 +18,27 @@ Countrys:
         Color: 'c'
         #羊毛的显示颜色 填写羊毛的损伤值就行了
         DyeColor: 2
+Hologram:
+    #没有敌对势力占领时的全息显示
+    Normal:
+        - '&6区域: %name%'
+        - '&b&l所属国家: %country%'
+        - '&5&l占领状态: %time%/60'
+    #被占领中的状态
+    Occupy:
+        - '&6区域: %name%'
+        - '&b&l所属国家: %country%'
+        - '&6正在被 %occupy_country%占领中'
+        - '&5&l占领状态: %time%/60'
+Award:
+    #第一名国家的奖励命令序列
+    '1':
+        - 'eco give %player% 100'
+    '2':
+        - 'eco give %player% 50'
+    '3':
+        - 'eco give %player% 10'
+Message:
+    AwardBC: '&6&l-----占领现在开始结算-----'
+    RankHead: '&d&l[排名]  国家      占领数'
+    RankFormat: '[%rank%] %country%   %count%'

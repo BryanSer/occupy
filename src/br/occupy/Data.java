@@ -11,10 +11,14 @@ import com.gmail.filoghost.holographicdisplays.api.Hologram;
 import com.gmail.filoghost.holographicdisplays.api.HologramsAPI;
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
+import org.bukkit.ChatColor;
 import org.bukkit.GameMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -41,6 +45,10 @@ public class Data implements Listener {
     public static Map<String, Hologram> Holograms = new HashMap<>();
     public static Main Plugin;
     public static ItemStack Select;
+    public static Map<Integer, List<String>> Awards = new HashMap<>();
+    public static Map<String, String> Message = new HashMap<>();
+
+    private static List<String>[] Hologram = new List[]{new ArrayList<>(), new ArrayList<>()};
 
     public static void checkPlayer() {
         for (Player p : Utils.getOnlinePlayers()) {
@@ -71,14 +79,20 @@ public class Data implements Listener {
             }
             holo.clearLines();
             Country c = area.getOccupyingCountry();
-            holo.appendTextLine("§6区域: " + area.getDisplayName());
+            List<String> dis = new ArrayList<>();
             String owner = area.getOccupied();
             Country own = Countrys.get(owner);
-            holo.appendTextLine("§b§l拥有国家: " + (own == null ? "§0中立" : own.getColor() + own.getName()));
-            if (c != null) {
-                holo.appendTextLine("§6目前正在被" + c.getName() + " 重新确立控制中");
+            if (c != own && c != null) {
+                dis.addAll(Hologram[1]);
+            } else {
+                dis.addAll(Hologram[0]);
             }
-            holo.appendTextLine("§b占领计时: " + area.getOccupyTime() + "/60");
+            dis.stream().map(s
+                    -> s.replaceAll("%name%", area.getDisplayName())
+                            .replaceAll("%time%", String.valueOf(area.getOccupyTime()))
+                            .replaceAll("%country%", own == null ? "§0中立" : own.getColor() + own.getName())
+                            .replaceAll("%occupy_country%", c != null ? c.getName() : "")
+            ).forEach(holo::appendTextLine);
         }
     }
 
@@ -111,6 +125,23 @@ public class Data implements Listener {
             Country c = new Country(cs.getConfigurationSection(key));
             Countrys.put(key, c);
         }
+        config.getStringList("Hologram.Normal").stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).forEach(Hologram[0]::add);
+        config.getStringList("Hologram.Occupy").stream().map(s -> ChatColor.translateAlternateColorCodes('&', s)).forEach(Hologram[1]::add);
+
+        ConfigurationSection award = config.getConfigurationSection("Award");
+        for (String key : award.getKeys(false)) {
+            try {
+                int lv = Integer.parseInt(key);
+                Awards.put(lv, award.getStringList(key));
+            } catch (Exception e) {
+            }
+        }
+        ConfigurationSection msg = config.getConfigurationSection("Message");
+        msg.getKeys(false)
+                .stream()
+                .map(key -> new String[]{key, ChatColor.translateAlternateColorCodes('&', msg.getString(key))})
+                .forEach(v -> Message.put(v[0], v[1]));
+
         Select = new ItemStack(Material.DIAMOND_PICKAXE);
         ItemMeta im = Select.getItemMeta();
         im.setDisplayName("§e§lOccupy 选择工具");;
